@@ -1,5 +1,6 @@
 package me.joshua.querydsl_study;
 
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.JPQLQueryFactory;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import me.joshua.querydsl_study.entity.Member;
@@ -15,6 +16,7 @@ import javax.persistence.EntityManager;
 
 import java.util.List;
 
+import static me.joshua.querydsl_study.entity.QMember.*;
 import static me.joshua.querydsl_study.entity.QMember.member;
 import static org.assertj.core.api.Assertions.*;
 
@@ -98,6 +100,40 @@ public class QuerydslBasicTest {
                 .fetchOne();
 
         assertThat(findMember.getUsername()).isEqualTo("member1");
+
+    }
+
+    @Test
+    public void resultFetch () {
+
+        //fetch : list조회
+        List<Member> fetch = queryFactory
+                .selectFrom(member)
+                .fetch();
+
+        //fetchone : 단건 조회 // 둘 이상이면 NonUniqueResultException이 터진다.
+        Member member = queryFactory
+                .selectFrom(QMember.member)
+                .fetchOne();
+
+        //fetchFirst : limit 를 1 걸고 fetchOne 하는 것
+        Member fetchFirst = queryFactory
+                .selectFrom(QMember.member)
+                .fetchFirst();
+                //limit(1).fetchOne()
+
+        //fetchResult : paging 정보를 담고 있다. total count query가 추가로 발생한다.
+        QueryResults<Member> results = queryFactory
+                .selectFrom(QMember.member)
+                .fetchResults();
+
+        results.getTotal(); //paging 하기 위한 total count를 같이 가져옴
+        List<Member> content = results.getResults();
+
+        //fetchCount : count query를 날리는 것
+        long count = queryFactory
+                .selectFrom(QMember.member)
+                .fetchCount();
 
     }
 }
