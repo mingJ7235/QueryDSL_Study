@@ -1,5 +1,6 @@
 package me.joshua.querydsl_study;
 
+import com.querydsl.jpa.JPQLQueryFactory;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import me.joshua.querydsl_study.entity.Member;
 import me.joshua.querydsl_study.entity.QMember;
@@ -12,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 
+import java.util.List;
+
 import static me.joshua.querydsl_study.entity.QMember.member;
 import static org.assertj.core.api.Assertions.*;
 
@@ -22,8 +25,7 @@ public class QuerydslBasicTest {
     @Autowired
     EntityManager em;
 
-    JPAQueryFactory queryFactory;
-
+    JPQLQueryFactory queryFactory;
 
     @BeforeEach
     public void before () {
@@ -57,10 +59,45 @@ public class QuerydslBasicTest {
 
     @Test
     public void startQueryDsl () {
-        Member member1 = queryFactory.select(member)
+        Member member1 = queryFactory
+                .select(member)
                 .from(member)
                 .where(member.username.eq("member1"))
                 .fetchOne();
         assertThat(member1.getUsername()).isEqualTo("member1");
+    }
+
+    @Test
+    public void search () {
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1")
+                        .and(member.age.in(10,20)))
+                .fetchOne();
+
+        List<Member> memberStartwithMem = queryFactory
+                .selectFrom(member)
+                .where(member.username.startsWith("mem"))
+                .fetch();
+
+        assertThat(findMember.getUsername()).isEqualTo("member1");
+
+        for (Member member1 : memberStartwithMem) {
+            System.out.println("member1 = " + member1);
+        }
+    }
+
+    @Test
+    public void searchAndParam () {
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .where(
+                        member.username.eq("member1"),
+                        member.age.eq(10)
+                )
+                .fetchOne();
+
+        assertThat(findMember.getUsername()).isEqualTo("member1");
+
     }
 }
