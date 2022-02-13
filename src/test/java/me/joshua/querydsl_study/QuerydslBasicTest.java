@@ -7,6 +7,7 @@ import me.joshua.querydsl_study.entity.Member;
 import me.joshua.querydsl_study.entity.QMember;
 import me.joshua.querydsl_study.entity.Team;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,9 +40,9 @@ public class QuerydslBasicTest {
         em.persist(teamB);
 
         Member member1 = new Member("member1", 10, teamA);
-        Member member2 = new Member("member2", 10, teamA);
-        Member member3 = new Member("member3", 10, teamB);
-        Member member4 = new Member("member4", 10, teamB);
+        Member member2 = new Member("member2", 11, teamA);
+        Member member3 = new Member("member3", 12, teamB);
+        Member member4 = new Member("member4", 13, teamB);
 
         em.persist(member1);
         em.persist(member2);
@@ -136,4 +137,65 @@ public class QuerydslBasicTest {
                 .fetchCount();
 
     }
+
+    /**
+     * 회원 정렬 순서
+     * 1. 회원 나이 내림차순 (desc)
+     * 2. 회원 이름 올림차수 (asc)
+     * 단 2 에서 회원 이름이 없으면 마지막에 출력 (nulls last)
+     */
+    @Test
+    public void sort () {
+        em.persist(new Member(null, 100));
+        em.persist(new Member("member5", 100));
+        em.persist(new Member("member6", 100));
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.in(10, 100))
+                .orderBy(member.age.desc(), member.username.asc().nullsLast())
+                .fetch();
+
+        Member member5 = result.get(0);
+        Member member6 = result.get(1);
+        Member memberNull = result.get(2);
+        Member member1 = result.get(3);
+
+
+        assertThat(member5.getUsername()).isEqualTo("member5");
+        assertThat(member6.getUsername()).isEqualTo("member6");
+        assertThat(memberNull.getUsername()).isNull();
+        assertThat(member1.getUsername()).isEqualTo("member1");
+    }
+
+    @Test
+    public void paging1 () {
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .orderBy(member.username.desc())
+                .offset(1)
+                .limit(2)
+                .fetch();
+
+        assertThat(result.size()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("전체 조회수가 필요한 경우")
+    public void paging2 () {
+        QueryResults<Member> queryResults = queryFactory
+                .selectFrom(member)
+                .orderBy(member.username.desc())
+                .offset(1)
+                .limit(2)
+                .fetchResults();
+
+        assertThat(queryResults.getTotal()).isEqualTo(4);
+        assertThat(queryResults.getLimit()).isEqualTo(2);
+        assertThat(queryResults.getOffset()).isEqualTo(1);
+        assertThat(queryResults.getResults().size()).isEqualTo(2);
+
+
+    }
+
 }
