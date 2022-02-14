@@ -538,17 +538,26 @@ public class QuerydslBasicTest {
 
     @Test
     public void complexCase () {
-        List<String> result = queryFactory
+        List<Integer> result = queryFactory
                 .select(new CaseBuilder()
-                        .when(member.age.between(0, 20)).then("0 ~ 20살")
-                        .when(member.age.between(21, 30)).then("21살 ~ 30살")
-                        .otherwise("기타")
+                                .when(member.age.between(0, 20))
+                                .then(JPAExpressions
+                                        .select(member.age.max())
+                                        .from(member))
+//                        .when(member.age.between(21, 30)).then("21살 ~ 30살")
+                                .otherwise(JPAExpressions
+                                        .select(member.age.min())
+                                        .from(member))
                 )
                 .from(member)
                 .fetch();
-        for (String s : result) {
-            System.out.println("s = " + s);
+        for (Integer integer : result) {
+            System.out.println("integer = " + integer);
         }
+
+//        for (String s : result) {
+//            System.out.println("s = " + s);
+//        }
     }
 
     /**
