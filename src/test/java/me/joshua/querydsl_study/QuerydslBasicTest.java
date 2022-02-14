@@ -592,6 +592,46 @@ public class QuerydslBasicTest {
          * 결과
          * s = member1_10
          */
+        /**
+         * stringValue()는 활용도가 크다.
+         * 문자 아닌 다른 타입들은 이것으로 문자로 변환될 수 있는데, 이 방법은 ENUM을 처리할 때 자주 사용된다.
+         */
+    }
+
+    /**
+     * Projection
+     *
+     * 정의 : 프로젝션이란 select 대상을 지정하는 것을 의미한다.
+     * 프로젝션 대상이 둘 이상이면 튜플이나 DTO로 조회
+     */
+
+    @Test
+    @DisplayName("프로젝션 대상이 하나인 경우")
+    public void simpleProjection () {
+        List<String> result = queryFactory
+                .select(member.username)
+                .from(member)
+                .fetch();
+
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    @DisplayName("프로젝션 대상이 여러개인 경우")
+    public void tupleProjection () {
+        List<Tuple> result = queryFactory
+                .select(member.username, member.age)
+                .from(member)
+                .fetch();
+
+        for (Tuple tuple : result) {
+            String username = tuple.get(member.username);
+            Integer age = tuple.get(member.age);
+            System.out.println("username = " + username);
+            System.out.println("age = " + age);
+        }
     }
 
 }
