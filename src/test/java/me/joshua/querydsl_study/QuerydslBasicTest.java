@@ -269,8 +269,7 @@ public class QuerydslBasicTest {
      * (약간 억지성 -> 연관 관계가 없는 조인을 보여주기 위함임)
      *
      * from 절에 여러 엔티티를 선택해서 세타조인
-     * 외부 조인이 불가 했으나 join on을 사용하면 외부 조인 가능
-     */
+     * 외부 조인이 불가 했으나 join on을 사용하면 외부 조인 가능     */
     @Test
     public void theta_join () {
         em.persist(new Member("teamA"));
@@ -287,4 +286,106 @@ public class QuerydslBasicTest {
                 .containsExactly("teamA", "teamB");
     }
 
+    /**
+     * join on 절
+     *
+     * 예) 회원과 팀을 조인하면서, 팀 이름이 teamA인 팀만 조인, 회원은 모두 조회
+     * jpql: select m, t from Member m left join m.team t on t.name = 'teamA'
+     */
+    @Test
+    public void join_on_filtering() {
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(member.team, team)
+                .on(team.name.eq("teamA"))
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+
+        /**
+         * 결과 값
+         * tuple = [Member(id=3, username=member1, age=10), Team(id=1, name=teamA)]
+         * tuple = [Member(id=4, username=member2, age=20), Team(id=1, name=teamA)]
+         * tuple = [Member(id=5, username=member3, age=30), null]
+         * tuple = [Member(id=6, username=member4, age=40), null]
+         */
+    }
+
+    @Test
+    public void join_on_filtering_inner() {
+        /**
+         * Join 대상을 필터링하는 경우
+         * inner join 에서 on은 where로 대체해서 쓰는것이 좋다.
+         * 외부조인 (leftJoin or rightJoin) 일 때만만on을 쓰는 것이 좋다.
+         */
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                //.join(member.team, team).on(team.name.eq("teamA"))
+                .join(member.team, team)
+                .where(team.name.eq("teamA"))
+                .fetch();
+    }
+
+    /**
+     * 연관관계가 없는 엔티티 외부 조인
+     *
+     * 회원의 이름이 팀 이름과 같은 대상을 외부 조인하는 경우
+     */
+    @Test
+    public void join_on_no_relation () {
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+        em.persist(new Member("teamC"));
+
+        List<Tuple> fetch = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(team).on(member.username.eq(team.name))
+                .fetch();
+
+        for (Tuple tuple : fetch) {
+            System.out.println("tuple = " + tuple);
+        }
+
+        /**
+         * 막 조인 결과 >
+         * tuple = [Member(id=3, username=member1, age=10), null]
+         * tuple = [Member(id=4, username=member2, age=20), null]
+         * tuple = [Member(id=5, username=member3, age=30), null]
+         * tuple = [Member(id=6, username=member4, age=40), null]
+         * tuple = [Member(id=7, username=teamA, age=0), Team(id=1, name=teamA)]
+         * tuple = [Member(id=8, username=teamB, age=0), Team(id=2, name=teamB)]
+         * tuple = [Member(id=9, username=teamC, age=0), null]
+         */
+
+    }
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
