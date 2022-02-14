@@ -2,6 +2,8 @@ package me.joshua.querydsl_study;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQueryFactory;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -508,6 +510,87 @@ public class QuerydslBasicTest {
          * tuple = [member2, 25.0]
          * tuple = [member3, 25.0]
          * tuple = [member4, 25.0]
+         */
+    }
+
+    /**
+     * Case 문
+     * -> select, where 절에서 사용가능
+     *
+     * but, 가급적이면 db 단에서는 이런 로직을 넣지말자.
+     * 가공시키는것은 비지니스 로직에서 사용하자.
+     */
+
+    @Test
+    public void BasicCase () {
+        List<String> result = queryFactory
+                .select(member.age
+                        .when(10).then("열살")
+                        .when(20).then("스무살")
+                        .otherwise("기타")
+                )
+                .from(member)
+                .fetch();
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    @Test
+    public void complexCase () {
+        List<String> result = queryFactory
+                .select(new CaseBuilder()
+                        .when(member.age.between(0, 20)).then("0 ~ 20살")
+                        .when(member.age.between(21, 30)).then("21살 ~ 30살")
+                        .otherwise("기타")
+                )
+                .from(member)
+                .fetch();
+        for (String s : result) {
+            System.out.println("s = " + s);
+        }
+    }
+
+    /**
+     * 상수 문자 더하기
+     */
+
+    @Test
+    @DisplayName("상수 붙여서 결과값 내기")
+    public void constant () {
+        List<Tuple> result = queryFactory
+                .select(member.username, Expressions.constant("A"))
+                .from(member)
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple);
+        }
+        /**
+         * 결과
+         * tuple = [member1, A]
+         * tuple = [member2, A]
+         * tuple = [member3, A]
+         * tuple = [member4, A]
+         */
+    }
+
+    @Test
+    public void concat() {
+
+        //{username}_{age} 형태로 내보내기
+        List<String> fetch = queryFactory
+                .select(member.username.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.username.eq("member1"))
+                .fetch();
+        for (String s : fetch) {
+            System.out.println("s = " + s);
+        }
+
+        /**
+         * 결과
+         * s = member1_10
          */
     }
 
