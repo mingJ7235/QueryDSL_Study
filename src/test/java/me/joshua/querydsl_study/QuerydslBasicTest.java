@@ -15,6 +15,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 
 import java.util.List;
 
@@ -364,6 +366,51 @@ public class QuerydslBasicTest {
 
     }
 
+    /**
+     * 패치조인
+     *
+     * 패치조인은 연관된 엔티티를 SQL 한번에 조회하는 기능
+     * 주로 성능 최적화에 사용하는 방법.
+     */
+
+    @PersistenceUnit
+    EntityManagerFactory emf;
+
+    @Test
+    @DisplayName("FetchJoin 미적용")
+    public void noFetchJoin() {
+        em.flush();
+        em.clear();
+
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        // fetch가 아닌경우 (Lazy로딩으로 연관관계가 엮여잇음) load를 해오는지 검증해준다.
+        // fetch가 아니므로 false가 나와야한다.
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+
+        assertThat(loaded).isFalse();
+
+    }
+
+    @Test
+    @DisplayName("FetchJoin 적용")
+    public void useFetchJoin() {
+        em.flush();
+        em.clear();
+
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .join(member.team, team).fetchJoin()
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+        assertThat(loaded).as("페치 조인 적용").isTrue();
+
+    }
 
 }
 
