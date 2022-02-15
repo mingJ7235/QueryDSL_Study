@@ -2,12 +2,15 @@ package me.joshua.querydsl_study;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQueryFactory;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import me.joshua.querydsl_study.dto.MemberDto;
+import me.joshua.querydsl_study.dto.UserDto;
 import me.joshua.querydsl_study.entity.Member;
 import me.joshua.querydsl_study.entity.QMember;
 import me.joshua.querydsl_study.entity.Team;
@@ -649,7 +652,7 @@ public class QuerydslBasicTest {
      */
 
     @Test
-    @DisplayName("DTO Projection 반환")
+    @DisplayName("DTO Projection 반환 - JQPL")
     public void findDtoByJPQL () {
         List<MemberDto> resultList = em.createQuery("select new me.joshua.querydsl_study.dto.MemberDto(m.username, m.age) from Member m", MemberDto.class)
                 .getResultList();
@@ -657,9 +660,96 @@ public class QuerydslBasicTest {
         for (MemberDto memberDto : resultList) {
             System.out.println("memberDto = " + memberDto);
         }
-
     }
 
+    /**
+     * QueryDSL은 3가지 방법을 사용
+     * 1. 프로퍼티 접근 - Setter
+     * 2. 필드 직접 접근
+     * 3. 생성자 사용
+     */
+
+    @Test
+    @DisplayName("DTO Projection 반환 - QueryDSL - 1.프로퍼티 접근 (setter)")
+    public void findDtoByQueryDSL_setter () {
+        List<MemberDto> result = queryFactory
+                .select(Projections.bean(MemberDto.class,
+                        member.username,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test
+    @DisplayName("DTO Projection 반환 - QueryDSL - 2. 필드 직접 접근 - DTO 에 getter, setter 없어도 된다.")
+    public void findDtoByQueryDSL_field () {
+        List<MemberDto> result = queryFactory
+                .select(Projections.fields(MemberDto.class,
+                        member.username,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test
+    @DisplayName("DTO Projection 반환 - QueryDSL - 3. 생성자 사용")
+    public void findDtoByQueryDSL_constructor () {
+        List<MemberDto> result = queryFactory
+                .select(Projections.constructor(MemberDto.class,
+                        member.username,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test
+    @DisplayName("DTO Projection 반환 - QueryDSL - 엔터티와 필드명이 다른 DTO를 가져올때")
+    public void findUserDtoByQueryDSL_field () {
+        List<UserDto> result = queryFactory
+                .select(Projections.fields(UserDto.class,
+                        member.username.as("name"), //userdto의 필드 명이 name이므로 ! entity와 dto의 필드 명이 다를 경우 이렇게 alias를 준다.
+                        member.age))
+                .from(member)
+                .fetch();
+
+        for (UserDto userDto : result) {
+            System.out.println("memberDto = " + userDto);
+        }
+    }
+
+    @Test
+    @DisplayName("DTO Projection 반환 - QueryDSL - 서브쿼리를 DTO 의 필드에 넣어 주는 경우")
+    public void findUserDtoByQueryDSL_subQuery () {
+
+        QMember memberSub = new QMember("memberSub");
+
+        List<UserDto> result = queryFactory
+                .select(Projections.fields(UserDto.class,
+//                        member.username.as("name"),
+                        ExpressionUtils.as(member.username, "name"), //이렇게 써도 되지만, 서브쿼리는 alias를 주기 힘들어서 ExpressionUtils를 쓰는것이고, 보통은 뒤에 .as로 간단히 사용
+                        ExpressionUtils.as(JPAExpressions
+                                .select(memberSub.age.max())
+                                .from(memberSub), "age")
+                ))
+                .from(member)
+                .fetch();
+
+        for (UserDto userDto : result) {
+            System.out.println("memberDto = " + userDto);
+        }
+    }
 }
 
 
